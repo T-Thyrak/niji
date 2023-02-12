@@ -8,4 +8,4 @@ set LIBS=dependencies\SDL2\lib\x64\SDL2.lib ^
 		 dependencies\GLEW\lib\glew32s.lib ^
 		 opengl32.lib User32.lib Gdi32.lib Shell32.lib
 
-cl.exe %CFLAGS% %INCLUDES% /Feniji src\main.c src\la.c src\editor.c src\free_glyph.c src\simple_renderer.c src\common.c src\file_browser.c /link %LIBS% -SUBSYSTEM:windows
+cl.exe %CFLAGS% %INCLUDES% /Feniji src\main.c src\la.c src\editor.c src\free_glyph.c src\simple_renderer.c src\common.c src\file_browser.c src\lexer.c /link %LIBS% -SUBSYSTEM:windows
