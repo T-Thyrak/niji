@@ -160,7 +160,7 @@ static void get_uniform_locations(GLuint program,
 }
 
 void simple_renderer_init(Simple_Renderer *sr) {
-  sr->camera_scale = 3;
+  sr->camera_scale = 2;
   {
     glGenVertexArrays(1, &sr->vao);
     glBindVertexArray(sr->vao);

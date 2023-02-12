@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -19,6 +20,7 @@
 #include "file_browser.h"
 #include "free_glyph.h"
 #include "la.h"
+#include "lexer.h"
 #include "simple_renderer.h"
 
 void MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
@@ -86,7 +88,7 @@ void render_file_browser(SDL_Window *window, Free_Glyph_Atlas *atlas,
 
   // Update camera
   {
-    float target_scale = 3;
+    float target_scale = 2;
     if (max_line_len > 1000) {
       max_line_len = 1000;
     }
@@ -94,8 +96,8 @@ void render_file_browser(SDL_Window *window, Free_Glyph_Atlas *atlas,
       target_scale = fmaxf((w - 300) / (max_line_len * 1.5) - 0.5, 0.5);
     }
 
-    if (target_scale > 3) {
-      target_scale = 3;
+    if (target_scale > 2) {
+      target_scale = 2;
     }
 
     sr->camera_vel =
@@ -125,7 +127,6 @@ void fb_change_dir(File_Browser *fb, const char *filepath) {
 
 int main(int argc, char **argv) {
   Errno err;
-  editor_recompute_lines(&editor);
 
   FT_Library library = {0};
 
@@ -135,7 +136,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  const char *font_filepath = "./VictorMono-Regular.ttf";
+  const char *font_filepath = "./iosevka-ss04-regular.ttc";
+  // const char *font_filepath = "./VictorMono-Regular.ttf";
   // const char *font_filepath = "./VictorMono-Italic.ttf";
   // const char *font_filepath = "./ComicNeue-Regular.ttf";
   // const char *font_filepath = "./JetBrainsMono-Regular.ttf";
@@ -165,6 +167,8 @@ int main(int argc, char **argv) {
               strerror(err));
       return 1;
     }
+    sb_append_cstr(&editor.filepath, filepath);
+    sb_append_null(&editor.filepath);
   }
 
   const char *dirpath = ".";
@@ -234,19 +238,14 @@ int main(int argc, char **argv) {
     fprintf(stderr, "WARNING: GL_ARB_debug_output is not available!");
   }
 
+  Vec4f bg_color = hex_to_vec4f(0x181818ff);
+
   free_glyph_atlas_init(&atlas, face);
 
   simple_renderer_init(&sr);
 
-  // const char *text = "Hello, World";
-  // const char *foobar = "Foo Bar";
-  // Vec4f color = vec4f(1, 0, 0, 1);
-  // Vec4f foobar_color = vec4f(0, 1, 0, 1);
-  // gl_render_text(text, vec2is(0), color, vec4fs(1));
-  // gl_render_text(foobar, vec2i(0, -1), foobar_color, vec4fs(0));
-  // glyph_buffer_sync();
-
-  // Vec2i cursor = vec2is(0);
+  editor.atlas = &atlas;
+  editor_recompute_lines(&editor);
 
   bool quit = false;
   bool file_browser = false;
@@ -403,7 +402,7 @@ int main(int argc, char **argv) {
       }
     }
 
-    glClearColor(0, 0, 0, 1);
+    glClearColor(bg_color.x, bg_color.y, bg_color.z, bg_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
 
     {

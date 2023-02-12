@@ -37,6 +37,16 @@ void editor_recompute_lines(Editor *e) {
 
   line.end = e->data.count;
   da_append(&e->lines, line);
+
+  /////////////////////////////
+
+  e->tokens.count = 0;
+  Lexer l = lexer_new(e->atlas, e->data.items, e->data.count);
+  Token t = lexer_next(&l);
+  while (t.kind != TOKEN_END) {
+    da_append(&e->tokens, t);
+    t = lexer_next(&l);
+  }
 }
 
 void editor_backspace(Editor *e) {
@@ -181,108 +191,6 @@ const char *editor_line_starts_with_one_of(Editor *e, size_t row, size_t col,
   return NULL;
 }
 
-const char *keywords[] = {
-  "auto",
-  "break",
-  "case",
-  "char",
-  "const",
-  "continue",
-  "default",
-  "do",
-  "double",
-  "else",
-  "enum",
-  "extern",
-  "float",
-  "for",
-  "goto",
-  "if",
-  "int",
-  "long",
-  "register",
-  "return",
-  "short",
-  "signed",
-  "sizeof",
-  "static",
-  "struct",
-  "switch",
-  "typedef",
-  "union",
-  "unsigned",
-  "void",
-  "volatile",
-  "while",
-  "alignas",
-  "alignof",
-  "and",
-  "and_eq",
-  "asm",
-  "atomic_cancel",
-  "atomic_commit",
-  "atomic_noexcept",
-  "bitand",
-  "bitor",
-  "bool",
-  "catch",
-  "char16_t",
-  "char32_t",
-  "char8_t",
-  "class",
-  "co_await",
-  "co_return",
-  "co_yield",
-  "compl",
-  "concept",
-  "const_cast",
-  "consteval",
-  "constexpr",
-  "constinit",
-  "decltype",
-  "delete",
-  "dynamic_cast",
-  "explicit",
-  "export",
-  "false",
-  "friend",
-  "inline",
-  "mutable",
-  "namespace",
-  "new",
-  "noexcept",
-  "not",
-  "not_eq",
-  "nullptr",
-  "operator",
-  "or",
-  "or_eq",
-  "private",
-  "protected",
-  "public",
-  "reflexpr",
-  "reinterpret_cast",
-  "requires",
-  "static_assert",
-  "static_cast",
-  "synchronized",
-  "template",
-  "this",
-  "thread_local",
-  "throw",
-  "true",
-  "try",
-  "typeid",
-  "typename",
-  "using",
-  "virtual",
-  "wchar_t",
-  "xor",
-  "xor_eq",
-};
-
-#define keywords_count (sizeof(keywords)/sizeof(keywords[0]))
-
 void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas,
                    Simple_Renderer *sr, Editor *e) {
   int w, h;
@@ -293,45 +201,76 @@ void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas,
   sr->resolution = vec2f(w, h);
   sr->time = (float)SDL_GetTicks() / 1000.0f;
 
-  {
-    simple_renderer_set_shader(sr, SHADER_COLOR);
+#if 1
+  simple_renderer_set_shader(sr, SHADER_COLOR);
 
-    if (e->selection) {
-      Vec4f sel_color = vec4f(.25, .25, .25, 1);
-      for (size_t row = 0; row < e->lines.count; ++row) {
-        size_t sb_c = e->sel_begin;
-        size_t se_c = e->cursor;
+  if (e->selection) {
+    Vec4f sel_color = vec4f(.25, .25, .25, 1);
+    for (size_t row = 0; row < e->lines.count; ++row) {
+      size_t sb_c = e->sel_begin;
+      size_t se_c = e->cursor;
 
-        if (sb_c > se_c) {
-          SWAP(size_t, sb_c, se_c);
-        }
+      if (sb_c > se_c) {
+        SWAP(size_t, sb_c, se_c);
+      }
 
-        Line line_c = e->lines.items[row];
+      Line line_c = e->lines.items[row];
 
-        if (sb_c < line_c.begin) {
-          sb_c = line_c.begin;
-        }
+      if (sb_c < line_c.begin) {
+        sb_c = line_c.begin;
+      }
 
-        if (se_c > line_c.end) {
-          se_c = line_c.end;
-        }
+      if (se_c > line_c.end) {
+        se_c = line_c.end;
+      }
 
-        if (sb_c <= se_c) {
-          Vec2f sb_s = vec2f(0, -(float)row * FREE_GLYPH_FONT_SIZE);
-          free_glyph_atlas_measure_line_sized(
-              atlas, e->data.items + line_c.begin, sb_c - line_c.begin, &sb_s);
-          Vec2f se_s = sb_s;
-          free_glyph_atlas_measure_line_sized(atlas, e->data.items + sb_c,
-                                              se_c - sb_c, &se_s);
+      if (sb_c <= se_c) {
+        Vec2f sb_s = vec2f(0, -(float)row * FREE_GLYPH_FONT_SIZE);
+        free_glyph_atlas_measure_line_sized(atlas, e->data.items + line_c.begin,
+                                            sb_c - line_c.begin, &sb_s);
+        Vec2f se_s = sb_s;
+        free_glyph_atlas_measure_line_sized(atlas, e->data.items + sb_c,
+                                            se_c - sb_c, &se_s);
 
-          simple_renderer_solid_rect(
-              sr, sb_s, vec2f(se_s.x - sb_s.x, FREE_GLYPH_FONT_SIZE),
-              sel_color);
-        }
+        simple_renderer_solid_rect(
+            sr, sb_s, vec2f(se_s.x - sb_s.x, FREE_GLYPH_FONT_SIZE), sel_color);
       }
     }
-    simple_renderer_flush(sr);
+  }
+  simple_renderer_flush(sr);
 
+  simple_renderer_set_shader(sr, SHADER_TEXT);
+  for (size_t i = 0; i < e->tokens.count; ++i) {
+    Token token = e->tokens.items[i];
+    Vec2f pos = token.position;
+    Vec4f color = vec4fs(1);
+    switch (token.kind) {
+    case TOKEN_PREPROP:
+      color = hex_to_vec4f(0x95a99fff);
+      break;
+
+    case TOKEN_KEYWORD:
+      color = hex_to_vec4f(0xffdd33ff);
+      break;
+
+    case TOKEN_SINGLE_COMMENT:
+      color = hex_to_vec4f(0xcc8c3cff);
+      break;
+
+    case TOKEN_STRING:
+      color = hex_to_vec4f(0x73c936ff);
+      break;
+
+    default: {
+      color = vec4fs(1);
+    } break;
+    }
+    free_glyph_atlas_render_line_sized(atlas, sr, token.text, token.text_len,
+                                       &pos, color);
+  }
+  simple_renderer_flush(sr);
+#else
+  {
     simple_renderer_set_shader(sr, SHADER_TEXT);
     for (size_t row = 0; row < e->lines.count; ++row) {
       Line line = e->lines.items[row];
@@ -365,6 +304,7 @@ void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas,
 
     simple_renderer_flush(sr);
   }
+#endif
 
   Vec2f cursor_pos = vec2fs(0);
   {
@@ -397,15 +337,16 @@ void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas,
   }
 
   {
-    float target_scale = 3;
+    float target_scale = 2;
+    max_line_len = 1000; // temporary measure
     if (max_line_len > 1000) {
       max_line_len = 1000;
     }
     if (max_line_len > 0) {
       target_scale = fmaxf((w - 300) / (max_line_len * 1.5), 0.5);
     }
-    if (target_scale > 3) {
-      target_scale = 3;
+    if (target_scale > 2) {
+      target_scale = 2;
     }
 
     sr->camera_vel =

@@ -1,8 +1,11 @@
 #ifndef __NIJI_COMMON_H
 #define __NIJI_COMMON_H
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#include "la.h"
+#include <stdint.h>
 
 typedef int Errno;
 
@@ -20,11 +23,23 @@ typedef int Errno;
 
 #define TAB_SIZE 2
 
-#define SWAP(T, a, b) do { T t = a; a = b; b = t; } while (0)
+#define SWAP(T, a, b)                                                          \
+  do {                                                                         \
+    T t = a;                                                                   \
+    a = b;                                                                     \
+    b = t;                                                                     \
+  } while (0)
 
 #define UNIMPLEMENTED(...)                                                     \
   do {                                                                         \
     fprintf(stderr, "%s:%d: UNIMPLEMENTED: %s\n", __FILE__, __LINE__,          \
+            __VA_ARGS__);                                                      \
+    exit(1);                                                                   \
+  } while (false)
+
+#define UNREACHABLE(...)                                                       \
+  do {                                                                         \
+    fprintf(stderr, "%s:%d: UNREACHABLE: %s\n", __FILE__, __LINE__,            \
             __VA_ARGS__);                                                      \
     exit(1);                                                                   \
   } while (false)
@@ -65,6 +80,7 @@ typedef int Errno;
     }                                                                          \
     memcpy((da)->items + (da)->count, new_items,                               \
            new_items_count * sizeof(*(da)->items));                            \
+    (da)->count += new_items_count;                                            \
   } while (0)
 
 char *temp_strdup(const char *s);
@@ -94,4 +110,7 @@ typedef struct {
 Errno read_entire_file(const char *filepath, String_Builder *sb);
 Errno read_entire_dir(const char *dirpath, Files *files);
 Errno write_entire_file(const char *filepath, const char *buf, size_t buf_size);
+
+Vec4f hex_to_vec4f(uint32_t color);
+
 #endif // __NIJI_COMMON_H
