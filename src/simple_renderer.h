@@ -7,6 +7,7 @@
 #include <SDL2/SDL_opengl.h>
 
 #include "la.h"
+#include <assert.h>
 
 typedef enum {
   UNIFORM_SLOT_TIME = 0,
@@ -33,6 +34,9 @@ typedef struct {
 } Simple_Vertex;
 
 #define SIMPLE_VERTICES_CAP (3 * 1024 * 1024)
+
+static_assert(SIMPLE_VERTICES_CAP % 3 == 0,
+              "Simple renderer vertex capacity must be divisible by 3.");
 
 typedef enum {
   SHADER_COLOR = 0,
@@ -65,6 +69,7 @@ typedef struct {
 void simple_renderer_init(Simple_Renderer *sr);
 void simple_renderer_flush(Simple_Renderer *sr);
 void simple_renderer_set_shader(Simple_Renderer *sr, Simple_Shader shader);
+void simple_renderer_reload_shaders(Simple_Renderer *sr);
 
 void simple_renderer_vertex(Simple_Renderer *sr, Vec2f p, Vec4f c, Vec2f uv);
 void simple_renderer_triangle(Simple_Renderer *sr, Vec2f p0, Vec2f p1, Vec2f p2,
@@ -75,7 +80,7 @@ void simple_renderer_quad(Simple_Renderer *sr, Vec2f p0, Vec2f p1, Vec2f p2,
                           Vec2f uv0, Vec2f uv1, Vec2f uv2, Vec2f uv3);
 void simple_renderer_solid_rect(Simple_Renderer *sr, Vec2f p, Vec2f s, Vec4f c);
 void simple_renderer_image_rect(Simple_Renderer *sr, Vec2f p, Vec2f s,
-                              Vec2f uvp, Vec2f uvs, Vec4f c);
+                                Vec2f uvp, Vec2f uvs, Vec4f c);
 void simple_renderer_clear(Simple_Renderer *sr);
 void simple_renderer_sync(Simple_Renderer *sr);
 void simple_renderer_draw(Simple_Renderer *sr);

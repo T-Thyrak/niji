@@ -18,10 +18,10 @@ void editor_insert_char(Editor *e, const char x) {
   e->data.items[e->cursor] = x;
   e->cursor += 1;
 
-  editor_recompute_lines(e);
+  editor_retokenize(e);
 }
 
-void editor_recompute_lines(Editor *e) {
+void editor_retokenize(Editor *e) {
   e->lines.count = 0;
 
   Line line;
@@ -61,7 +61,7 @@ void editor_backspace(Editor *e) {
   e->data.count -= 1;
   e->cursor -= 1;
 
-  editor_recompute_lines(e);
+  editor_retokenize(e);
 }
 
 void editor_delete(Editor *e) {
@@ -73,10 +73,11 @@ void editor_delete(Editor *e) {
 
   e->data.count -= 1;
 
-  editor_recompute_lines(e);
+  editor_retokenize(e);
 }
 
 Errno editor_save_as(Editor *e, const char *filepath) {
+  printf("Saving as `%s` ...\n", filepath);
   Errno err = write_entire_file(filepath, e->data.items, e->data.count);
   if (err != 0)
     return err;
@@ -89,10 +90,12 @@ Errno editor_save_as(Editor *e, const char *filepath) {
 
 Errno editor_save(const Editor *e) {
   assert(e->filepath.count > 0);
+  printf("Saving as `%s` ...\n", e->filepath.items);
   return write_entire_file(e->filepath.items, e->data.items, e->data.count);
 }
 
 Errno editor_load_from_file(Editor *e, const char *filepath) {
+  printf("Loading `%s` ...\n", filepath);
   e->data.count = 0;
 
   Errno err = read_entire_file(filepath, &e->data);
@@ -101,7 +104,7 @@ Errno editor_load_from_file(Editor *e, const char *filepath) {
 
   e->cursor = 0;
 
-  editor_recompute_lines(e);
+  editor_retokenize(e);
 
   e->filepath.count = 0;
   sb_append_cstr(&e->filepath, filepath);
@@ -201,7 +204,6 @@ void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas,
   sr->resolution = vec2f(w, h);
   sr->time = (float)SDL_GetTicks() / 1000.0f;
 
-#if 1
   simple_renderer_set_shader(sr, SHADER_COLOR);
 
   if (e->selection) {
@@ -267,44 +269,10 @@ void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas,
     }
     free_glyph_atlas_render_line_sized(atlas, sr, token.text, token.text_len,
                                        &pos, color);
+    if (max_line_len < pos.x)
+      max_line_len = pos.x;
   }
   simple_renderer_flush(sr);
-#else
-  {
-    simple_renderer_set_shader(sr, SHADER_TEXT);
-    for (size_t row = 0; row < e->lines.count; ++row) {
-      Line line = e->lines.items[row];
-
-      Vec2f begin = vec2f(0, -(float)row * FREE_GLYPH_FONT_SIZE);
-      Vec2f end = begin;
-
-      size_t col = 0;
-      while (line.begin + col < line.end) {
-        const char *keyword = editor_line_starts_with_one_of(
-            e, row, col, keywords, keywords_count);
-        if (keyword != NULL) {
-          size_t keyword_len = strlen(keyword);
-          free_glyph_atlas_render_line_sized(
-              atlas, sr, e->data.items + line.begin + col, keyword_len, &end,
-              vec4f(1, 1, 0, 1));
-          col += keyword_len;
-        } else {
-          // render single character
-          free_glyph_atlas_render_line_sized(
-              atlas, sr, e->data.items + line.begin + col, 1, &end, vec4fs(1));
-          col += 1;
-        }
-      }
-
-      float line_len = fabsf(end.x - begin.x);
-      if (line_len > max_line_len) {
-        max_line_len = line_len;
-      }
-    }
-
-    simple_renderer_flush(sr);
-  }
-#endif
 
   Vec2f cursor_pos = vec2fs(0);
   {
@@ -337,20 +305,27 @@ void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas,
   }
 
   {
-    float target_scale = 2;
-    max_line_len = 1000; // temporary measure
     if (max_line_len > 1000) {
       max_line_len = 1000;
     }
-    if (max_line_len > 0) {
-      target_scale = fmaxf((w - 300) / (max_line_len * 1.5), 0.5);
-    }
-    if (target_scale > 2) {
-      target_scale = 2;
+    if (max_line_len <= 0) {
+      max_line_len = 1;
     }
 
-    sr->camera_vel =
-        vec2f_mul(vec2f_sub(cursor_pos, sr->camera_pos), vec2fs(2));
+    float target_scale = (float)w / 3 / (max_line_len * 0.75);
+    Vec2f target = cursor_pos;
+    float offset = 0.0f;
+
+    if (target_scale > 2) {
+      target_scale = 2;
+    } else {
+      offset = cursor_pos.x - (float)w / 3 / sr->camera_scale;
+      if (offset < 0.0f)
+        offset = 0.0f;
+      target = vec2f((float)w / 3 / sr->camera_scale + offset, cursor_pos.y);
+    }
+
+    sr->camera_vel = vec2f_mul(vec2f_sub(target, sr->camera_pos), vec2fs(2));
     sr->camera_scale_vel = (target_scale - sr->camera_scale) * 2;
 
     sr->camera_pos = vec2f_add(sr->camera_pos,

@@ -42,88 +42,12 @@ static Simple_Renderer sr = {0};
 static Editor editor = {0};
 static File_Browser fb = {0};
 
-void render_file_browser(SDL_Window *window, Free_Glyph_Atlas *atlas,
-                         Simple_Renderer *sr, const File_Browser *fb) {
-
-  Vec2f cursor_pos = vec2f(0, -(float)fb->cursor * FREE_GLYPH_FONT_SIZE);
-  int w, h;
-  SDL_GetWindowSize(window, &w, &h);
-
-  float max_line_len = 0.f;
-
-  sr->resolution = vec2f(w, h);
-  sr->time = (float)SDL_GetTicks() / 1000.0f;
-
-  // Render cursor
-  simple_renderer_set_shader(sr, SHADER_COLOR);
-  if (fb->cursor < fb->files.count) {
-    const Vec2f begin = cursor_pos;
-    Vec2f end = begin;
-    free_glyph_atlas_measure_line_sized(atlas, fb->files.items[fb->cursor],
-                                        strlen(fb->files.items[fb->cursor]),
-                                        &end);
-    simple_renderer_solid_rect(sr, begin,
-                               vec2f(end.x - begin.x, FREE_GLYPH_FONT_SIZE),
-                               vec4f(.25, .25, .25, 1));
-  }
-
-  simple_renderer_flush(sr);
-
-  // Render text
-  simple_renderer_set_shader(sr, SHADER_EPIC);
-  for (size_t row = 0; row < fb->files.count; ++row) {
-    const Vec2f begin = vec2f(0, -(float)row * FREE_GLYPH_FONT_SIZE);
-    Vec2f end = begin;
-
-    free_glyph_atlas_render_line_sized(atlas, sr, fb->files.items[row],
-                                       strlen(fb->files.items[row]), &end,
-                                       vec4fs(0));
-    float line_len = fabsf(end.x - begin.x);
-    if (line_len > max_line_len) {
-      max_line_len = line_len;
-    }
-  }
-
-  simple_renderer_flush(sr);
-
-  // Update camera
-  {
-    float target_scale = 2;
-    if (max_line_len > 1000) {
-      max_line_len = 1000;
-    }
-    if (max_line_len > 0) {
-      target_scale = fmaxf((w - 300) / (max_line_len * 1.5) - 0.5, 0.5);
-    }
-
-    if (target_scale > 2) {
-      target_scale = 2;
-    }
-
-    sr->camera_vel =
-        vec2f_mul(vec2f_sub(cursor_pos, sr->camera_pos), vec2fs(2));
-    sr->camera_scale_vel = (target_scale - sr->camera_scale) * 2;
-
-    sr->camera_pos = vec2f_add(sr->camera_pos,
-                               vec2f_mul(sr->camera_vel, vec2fs(DELTA_TIME)));
-
-    sr->camera_scale = sr->camera_scale + sr->camera_scale_vel * DELTA_TIME;
-  }
-}
-
 // TODO: display errors reported via flash_error right into the text editor
-#define flash_error(...) fprintf(stderr, __VA_ARGS__)
-
-bool is_dir(const char *filepath) {
-  UNUSED(filepath);
-  UNIMPLEMENTED("is_dir");
-}
-
-void fb_change_dir(File_Browser *fb, const char *filepath) {
-  UNUSED(fb);
-  UNUSED(filepath);
-  UNIMPLEMENTED("fuck");
-}
+#define flash_error(...)                                                       \
+  do {                                                                         \
+    fprintf(stderr, __VA_ARGS__);                                              \
+    fprintf(stderr, "\n");                                                     \
+  } while (0)
 
 int main(int argc, char **argv) {
   Errno err;
@@ -245,7 +169,7 @@ int main(int argc, char **argv) {
   simple_renderer_init(&sr);
 
   editor.atlas = &atlas;
-  editor_recompute_lines(&editor);
+  editor_retokenize(&editor);
 
   bool quit = false;
   bool file_browser = false;
@@ -280,17 +204,41 @@ int main(int argc, char **argv) {
           } break;
 
           case SDLK_RETURN: {
-            if (fb.cursor < fb.files.count) {
-              const char *filepath = fb.files.items[fb.cursor];
-              if (is_dir(filepath)) {
-                fb_change_dir(&fb, filepath);
+            const char *filepath = fb_filepath(&fb);
+            if (filepath) {
+              File_Type ft;
+              err = type_of_file(filepath, &ft);
+              if (err != 0) {
+                flash_error("Could not determine type of file %s: %s", filepath,
+                            strerror(err));
               } else {
-                err = editor_load_from_file(&editor, filepath);
-                if (err != 0) {
-                  flash_error("ERROR: Could not open file %s: %s\n", filepath,
-                              strerror(err));
-                } else {
-                  file_browser = false;
+                switch (ft) {
+                case FT_DIRECTORY: {
+                  err = fb_change_dir(&fb);
+                  if (err != 0) {
+                    flash_error("Could not change directory to %s: %s",
+                                filepath, strerror(err));
+                  }
+                } break;
+                case FT_REGULAR: {
+                  // TODO: nag about unsaved changes
+                  err = editor_load_from_file(&editor, filepath);
+                  if (err != 0) {
+                    flash_error("Could not open file %s: %s", filepath,
+                                strerror(err));
+                  } else {
+                    file_browser = false;
+                  }
+                } break;
+
+                case FT_OTHER: {
+                  flash_error("%s is neither a regular file nor a directory. "
+                              "Get fucked.",
+                              filepath);
+                } break;
+
+                default:
+                  UNREACHABLE("unknown File_Type");
                 }
               }
             }
@@ -312,6 +260,10 @@ int main(int argc, char **argv) {
 
           case SDLK_F3: {
             file_browser = true;
+          } break;
+
+          case SDLK_F5: {
+            simple_renderer_reload_shaders(&sr);
           } break;
 
           case SDLK_BACKSPACE: {
@@ -412,7 +364,7 @@ int main(int argc, char **argv) {
     }
 
     if (file_browser) {
-      render_file_browser(window, &atlas, &sr, &fb);
+      fb_render(window, &atlas, &sr, &fb);
     } else {
       editor_render(window, &atlas, &sr, &editor);
     }

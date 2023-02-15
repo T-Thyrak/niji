@@ -47,7 +47,7 @@ Errno editor_save_as(Editor *editor, const char *filepath);
 Errno editor_save(const Editor *editor);
 Errno editor_load_from_file(Editor *editor, const char *filepath);
 
-void editor_recompute_lines(Editor *editor);
+void editor_retokenize(Editor *editor);
 
 void editor_insert_char(Editor *editor, const char ch);
 
