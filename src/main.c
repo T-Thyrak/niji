@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
   }
 
   SDL_Window *window = (SDL_CreateWindow(
-      "Njij Editor", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT,
+      "Niji Editor", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT,
       SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED));
 
   if (window == NULL) {

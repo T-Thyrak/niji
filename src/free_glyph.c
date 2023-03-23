@@ -5,8 +5,10 @@
 #include <stdio.h>
 
 void free_glyph_atlas_init(Free_Glyph_Atlas *atlas, FT_Face face) {
+  FT_Int32 load_flags = FT_LOAD_RENDER | FT_LOAD_TARGET_(FT_RENDER_MODE_SDF);
+  
   for (int i = 32; i < 128; ++i) {
-    if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
+    if (FT_Load_Char(face, i, load_flags)) {
       fprintf(stderr, "ERROR: Loading character `%c` failed!\n", i);
       exit(1);
     }
@@ -31,7 +33,7 @@ void free_glyph_atlas_init(Free_Glyph_Atlas *atlas, FT_Face face) {
                (GLsizei)atlas->atlas_height, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);
   int x = 0;
   for (int i = 32; i < 128; ++i) {
-    if (FT_Load_Char(face, i, FT_LOAD_RENDER)) {
+    if (FT_Load_Char(face, i, load_flags)) {
       fprintf(stderr,
               "ERROR: Could not load glyph of a character with code %d\n", i);
       exit(1);

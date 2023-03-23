@@ -300,38 +300,47 @@ void simple_renderer_flush(Simple_Renderer *sr) {
 }
 
 void simple_renderer_reload_shaders(Simple_Renderer *sr) {
-  for (int i = 0; i < COUNT_SIMPLE_SHADERS; ++i) {
-    glDeleteProgram(sr->programs[i]);
+  GLuint programs[COUNT_SIMPLE_SHADERS];
+  GLuint shaders[2] = {0};
+
+  bool ok = true;
+
+  if (!compile_shader_file(vert_shader_filepath, GL_VERTEX_SHADER,
+                           &shaders[0])) {
+    fprintf(stderr, "ERROR: failed to compile vertex shader\n");
+    ok = false;
   }
 
-  {
-    GLuint shaders[2] = {0};
-
-    if (!compile_shader_file(vert_shader_filepath, GL_VERTEX_SHADER,
-                             &shaders[0])) {
-      fprintf(stderr, "ERROR: failed to compile vertex shader\n");
-      exit(1);
+  for (int i = 0; i < COUNT_SIMPLE_SHADERS; ++i) {
+    if (!compile_shader_file(frag_shader_filepaths[i], GL_FRAGMENT_SHADER,
+                             &shaders[1])) {
+      fprintf(stderr, "ERROR: failed to compile fragment shader `%s`\n",
+              frag_shader_filepaths[i]);
+      ok = false;
     }
 
+    programs[i] = glCreateProgram();
+    attach_shaders_to_program(shaders, sizeof(shaders) / sizeof(shaders[0]),
+                              programs[i]);
+
+    if (!link_program(programs[i], __FILE__, __LINE__)) {
+      fprintf(stderr, "ERROR: failed to link program at iteration %d\n", i);
+      ok = false;
+    }
+
+    glDeleteShader(shaders[1]);
+  }
+  glDeleteShader(shaders[0]);
+
+  if (ok) {
     for (int i = 0; i < COUNT_SIMPLE_SHADERS; ++i) {
-      if (!compile_shader_file(frag_shader_filepaths[i], GL_FRAGMENT_SHADER,
-                               &shaders[1])) {
-        fprintf(stderr, "ERROR: failed to compile fragment shader `%s`\n",
-                frag_shader_filepaths[i]);
-        exit(1);
-      }
-
-      sr->programs[i] = glCreateProgram();
-      attach_shaders_to_program(shaders, sizeof(shaders) / sizeof(shaders[0]),
-                                sr->programs[i]);
-
-      if (!link_program(sr->programs[i], __FILE__, __LINE__)) {
-        fprintf(stderr, "ERROR: failed to link program at iteration %d\n", i);
-        exit(1);
-      }
-
-      glDeleteShader(shaders[1]);
+      glDeleteProgram(sr->programs[i]);
+      sr->programs[i] = programs[i];
     }
-    glDeleteShader(shaders[0]);
+    printf("Shaders reloading successful!\n");
+  } else {
+    for (int i = 0; i < COUNT_SIMPLE_SHADERS; ++i) {
+      glDeleteProgram(programs[i]);
+    }
   }
 }
