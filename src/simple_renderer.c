@@ -220,7 +220,7 @@ void simple_renderer_init(Simple_Renderer *sr) {
 }
 
 void simple_renderer_vertex(Simple_Renderer *sr, Vec2f p, Vec4f c, Vec2f uv) {
-#if 0
+#if 1
   // TODO: shouldn't crash when ran out of vertices
   if (sr->vertices_count >= SIMPLE_VERTICES_CAP)
     simple_renderer_flush(sr);

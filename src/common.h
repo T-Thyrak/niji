@@ -7,6 +7,8 @@
 #include "la.h"
 #include <stdint.h>
 
+#include "sv.h"
+
 typedef int Errno;
 
 #define UNHEX(color)                                                           \
@@ -17,6 +19,8 @@ typedef int Errno;
 #define SCREEN_HEIGHT 768
 #define FPS 60
 #define DELTA_TIME (1.0f / FPS)
+
+#define CURSOR_OFFSET 0.13f
 
 #define ASCII_DISPLAY_LOW 32
 #define ASCII_DISPLAY_HIGH 126
@@ -53,6 +57,16 @@ typedef int Errno;
   } while (0)
 
 #define DA_INIT_CAP 256
+
+#define da_last(da) (assert((da)->count > 0), (da)->items[(da)->count - 1])
+
+#define da_move(dst, src)                                                      \
+  do {                                                                         \
+    free((dst)->items);                                                        \
+    (dst)->items = (src).items;                                                \
+    (dst)->count = (src).count;                                                \
+    (dst)->capacity = (src).capacity;                                          \
+  } while (0)
 
 #define da_append(da, item)                                                    \
   do {                                                                         \
@@ -92,6 +106,9 @@ typedef struct {
   size_t capacity;
 } String_Builder;
 
+#define SB_Fmt "%.*s"
+#define SB_Arg(sb) (int) (sb).count, (sb).items
+
 #define sb_append_buf da_append_many
 #define sb_append_cstr(sb, cstr)                                               \
   do {                                                                         \
@@ -101,6 +118,8 @@ typedef struct {
   } while (0)
 
 #define sb_append_null(sb) da_append_many(sb, "", 1)
+
+#define sb_to_sv(sb) sv_from_parts((sb).items, (sb).count)
 
 typedef struct {
   const char **items;

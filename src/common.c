@@ -16,6 +16,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define SV_IMPLEMENTATION
+#include "sv.h"
+
 static Arena temp_arena = {0};
 
 char *temp_strdup(const char *s) {

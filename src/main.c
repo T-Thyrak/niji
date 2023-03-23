@@ -22,6 +22,7 @@
 #include "la.h"
 #include "lexer.h"
 #include "simple_renderer.h"
+#include "sv.h"
 
 void MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
                      GLsizei length, const GLchar *message,
@@ -60,11 +61,11 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  const char *font_filepath = "./iosevka-ss04-regular.ttc";
-  // const char *font_filepath = "./VictorMono-Regular.ttf";
-  // const char *font_filepath = "./VictorMono-Italic.ttf";
-  // const char *font_filepath = "./ComicNeue-Regular.ttf";
-  // const char *font_filepath = "./JetBrainsMono-Regular.ttf";
+  const char *font_filepath = "./fonts/iosevka-ss04-regular.ttc";
+  // const char *font_filepath = "./fonts/VictorMono-Regular.ttf";
+  // const char *font_filepath = "./fonts/VictorMono-Italic.ttf";
+  // const char *font_filepath = "./fonts/ComicNeue-Regular.ttf";
+  // const char *font_filepath = "./fonts/JetBrainsMono-Regular.ttf";
 
   FT_Face face;
   error = FT_New_Face(library, font_filepath, 0, &face);
@@ -139,16 +140,6 @@ int main(int argc, char **argv) {
 
   if (GLEW_OK != glewInit()) {
     fprintf(stderr, "ERROR: Could not initialize GLEW!");
-    return 1;
-  }
-
-  if (!GLEW_ARB_draw_instanced) {
-    fprintf(stderr, "ERROR: GLEW_ARB_draw_instanced is not available!");
-    return 1;
-  }
-
-  if (!GLEW_ARB_instanced_arrays) {
-    fprintf(stderr, "ERROR: GLEW_ARB_instanced_arrays are not available!");
     return 1;
   }
 
@@ -320,12 +311,22 @@ int main(int argc, char **argv) {
 
           case SDLK_LEFT: {
             editor_update_selection(&editor, event.key.keysym.mod & KMOD_SHIFT);
-            editor_move_char_left(&editor);
+            // editor_move_char_left(&editor);
+            if (event.key.keysym.mod & KMOD_CTRL) {
+              editor_move_word_left(&editor);
+            } else {
+              editor_move_char_left(&editor);
+            }
           } break;
 
           case SDLK_RIGHT: {
             editor_update_selection(&editor, event.key.keysym.mod & KMOD_SHIFT);
-            editor_move_char_right(&editor);
+            // editor_move_char_right(&editor);
+            if (event.key.keysym.mod & KMOD_CTRL) {
+              editor_move_word_right(&editor);
+            } else {
+              editor_move_char_right(&editor);
+            }
           } break;
           }
         }

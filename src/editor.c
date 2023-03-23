@@ -163,6 +163,24 @@ void editor_move_char_right(Editor *e) {
     e->cursor += 1;
 }
 
+void editor_move_word_left(Editor *e) {
+  while (e->cursor > 0 && !isalnum(e->data.items[e->cursor - 1])) {
+    e->cursor -= 1;
+  }
+  while (e->cursor > 0 && isalnum(e->data.items[e->cursor - 1])) {
+    e->cursor -= 1;
+  }
+}
+
+void editor_move_word_right(Editor *e) {
+  while (e->cursor < e->data.count && !isalnum(e->data.items[e->cursor])) {
+    e->cursor += 1;
+  }
+  while (e->cursor < e->data.count && isalnum(e->data.items[e->cursor])) {
+    e->cursor += 1;
+  }
+}
+
 bool editor_line_starts_with(Editor *e, size_t row, size_t col,
                              const char *prefix) {
   size_t prefix_len = strlen(prefix);
@@ -228,7 +246,8 @@ void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas,
       }
 
       if (sb_c <= se_c) {
-        Vec2f sb_s = vec2f(0, -(float)row * FREE_GLYPH_FONT_SIZE);
+        Vec2f sb_s =
+            vec2f(0, -((float)row + CURSOR_OFFSET) * FREE_GLYPH_FONT_SIZE);
         free_glyph_atlas_measure_line_sized(atlas, e->data.items + line_c.begin,
                                             sb_c - line_c.begin, &sb_s);
         Vec2f se_s = sb_s;
@@ -282,7 +301,7 @@ void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas,
 
     size_t cursor_col = e->cursor - line.begin;
 
-    cursor_pos.y = -(float)cursor_row * FREE_GLYPH_FONT_SIZE;
+    cursor_pos.y = -((float)cursor_row + CURSOR_OFFSET) * FREE_GLYPH_FONT_SIZE;
     cursor_pos.x = free_glyph_atlas_cursor_pos(
         atlas, e->data.items + line.begin, line.end - line.begin,
         vec2f(0, cursor_pos.y), cursor_col);
