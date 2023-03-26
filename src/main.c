@@ -257,6 +257,10 @@ int main(int argc, char **argv) {
             simple_renderer_reload_shaders(&sr);
           } break;
 
+          case SDLK_ESCAPE: {
+            editor_stop_search(&editor);
+          } break;
+
           case SDLK_BACKSPACE: {
             editor_update_selection(&editor, event.key.keysym.mod & KMOD_SHIFT);
             editor_backspace(&editor);
@@ -268,14 +272,25 @@ int main(int argc, char **argv) {
           } break;
 
           case SDLK_RETURN: {
-            editor_update_selection(&editor, event.key.keysym.mod & KMOD_SHIFT);
-            editor_insert_char(&editor, '\n');
+            if (editor.searching) {
+              editor_stop_search(&editor);
+            } else {
+              editor_update_selection(&editor,
+                                      event.key.keysym.mod & KMOD_SHIFT);
+              editor_insert_char(&editor, '\n');
+            }
           } break;
 
           case SDLK_TAB: {
             editor_update_selection(&editor, event.key.keysym.mod & KMOD_SHIFT);
             for (int i = 0; i < TAB_SIZE; ++i) {
               editor_insert_char(&editor, ' ');
+            }
+          } break;
+
+          case SDLK_f: {
+            if (event.key.keysym.mod & KMOD_CTRL) {
+              editor_start_search(&editor);
             }
           } break;
 

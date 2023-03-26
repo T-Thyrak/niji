@@ -36,6 +36,9 @@ typedef struct {
   Tokens tokens;
   String_Builder filepath;
 
+  bool searching;
+  String_Builder search;
+
   bool selection;
   size_t sel_begin;
   size_t cursor;
@@ -65,6 +68,10 @@ void editor_move_char_right(Editor *editor);
 void editor_move_word_left(Editor *e);
 void editor_move_word_right(Editor *e);
 void editor_update_selection(Editor *e, bool shift);
+
+void editor_start_search(Editor *e);
+void editor_stop_search(Editor *e);
+bool editor_search_matches_at(Editor *e, size_t pos);
 
 void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas,
                    Simple_Renderer *sr, Editor *e);
