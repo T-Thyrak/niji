@@ -151,8 +151,7 @@ size_t editor_cursor_row(const Editor *e) {
 }
 
 void editor_move_line_up(Editor *e) {
-  if (e->searching)
-    return;
+  editor_stop_search(e);
 
   size_t cursor_row = editor_cursor_row(e);
   size_t cursor_col = e->cursor - e->lines.items[cursor_row].begin;
@@ -167,8 +166,7 @@ void editor_move_line_up(Editor *e) {
 }
 
 void editor_move_line_down(Editor *e) {
-  if (e->searching)
-    return;
+  editor_stop_search(e);
 
   size_t cursor_row = editor_cursor_row(e);
   size_t cursor_col = e->cursor - e->lines.items[cursor_row].begin;
@@ -183,24 +181,21 @@ void editor_move_line_down(Editor *e) {
 }
 
 void editor_move_char_left(Editor *e) {
-  if (e->searching)
-    return;
+  editor_stop_search(e);
 
   if (e->cursor > 0)
     e->cursor -= 1;
 }
 
 void editor_move_char_right(Editor *e) {
-  if (e->searching)
-    return;
+  editor_stop_search(e);
 
   if (e->cursor < e->data.count)
     e->cursor += 1;
 }
 
 void editor_move_word_left(Editor *e) {
-  if (e->searching)
-    return;
+  editor_stop_search(e);
 
   while (e->cursor > 0 && !isalnum(e->data.items[e->cursor - 1])) {
     e->cursor -= 1;
@@ -211,8 +206,7 @@ void editor_move_word_left(Editor *e) {
 }
 
 void editor_move_word_right(Editor *e) {
-  if (e->searching)
-    return;
+  editor_stop_search(e);
 
   while (e->cursor < e->data.count && !isalnum(e->data.items[e->cursor])) {
     e->cursor += 1;
@@ -220,6 +214,52 @@ void editor_move_word_right(Editor *e) {
   while (e->cursor < e->data.count && isalnum(e->data.items[e->cursor])) {
     e->cursor += 1;
   }
+}
+
+void editor_move_to_begin(Editor *e) {
+  editor_stop_search(e);
+  e->cursor = 0;
+}
+
+void editor_move_to_end(Editor *e) {
+  editor_stop_search(e);
+  e->cursor = e->data.count;
+}
+
+void editor_move_to_line_begin(Editor *e) {
+  editor_stop_search(e);
+  size_t row = editor_cursor_row(e);
+  e->cursor = e->lines.items[row].begin;
+}
+
+void editor_move_to_line_end(Editor *e) {
+  editor_stop_search(e);
+  size_t row = editor_cursor_row(e);
+  e->cursor = e->lines.items[row].end;
+}
+
+void editor_move_paragraph_up(Editor *e) {
+  editor_stop_search(e);
+  size_t row = editor_cursor_row(e);
+  while (row > 0 && e->lines.items[row].end - e->lines.items[row].begin <= 1) {
+    row -= 1;
+  }
+  while (row > 0 && e->lines.items[row].end - e->lines.items[row].begin > 1) {
+    row -= 1;
+  }
+  e->cursor = e->lines.items[row].begin;
+}
+
+void editor_move_paragraph_down(Editor *e) {
+  editor_stop_search(e);
+  size_t row = editor_cursor_row(e);
+  while (row + 1 < e->lines.count && e->lines.items[row].end - e->lines.items[row].begin <= 1) {
+    row += 1;
+  }
+  while (row + 1 < e->lines.count && e->lines.items[row].end - e->lines.items[row].begin > 1) {
+    row += 1;
+  }
+  e->cursor = e->lines.items[row].begin;
 }
 
 bool editor_line_starts_with(Editor *e, size_t row, size_t col,

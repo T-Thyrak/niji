@@ -67,6 +67,13 @@ void editor_move_char_left(Editor *editor);
 void editor_move_char_right(Editor *editor);
 void editor_move_word_left(Editor *e);
 void editor_move_word_right(Editor *e);
+void editor_move_to_begin(Editor *e);
+void editor_move_to_end(Editor *e);
+void editor_move_to_line_begin(Editor *e);
+void editor_move_to_line_end(Editor *e);
+void editor_move_paragraph_up(Editor *e);
+void editor_move_paragraph_down(Editor *e);
+
 void editor_update_selection(Editor *e, bool shift);
 
 void editor_start_search(Editor *e);

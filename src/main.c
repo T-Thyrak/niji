@@ -257,8 +257,27 @@ int main(int argc, char **argv) {
             simple_renderer_reload_shaders(&sr);
           } break;
 
+          case SDLK_HOME: {
+            editor_update_selection(&editor, event.key.keysym.mod & KMOD_SHIFT);
+            if (event.key.keysym.mod & KMOD_CTRL) {
+              editor_move_to_begin(&editor);
+            } else {
+              editor_move_to_line_begin(&editor);
+            }
+          } break;
+
+          case SDLK_END: {
+            editor_update_selection(&editor, event.key.keysym.mod & KMOD_SHIFT);
+            if (event.key.keysym.mod & KMOD_CTRL) {
+              editor_move_to_end(&editor);
+            } else {
+              editor_move_to_line_end(&editor);
+            }
+          } break;
+
           case SDLK_ESCAPE: {
             editor_stop_search(&editor);
+            editor_update_selection(&editor, event.key.keysym.mod & KMOD_SHIFT);
           } break;
 
           case SDLK_BACKSPACE: {
@@ -316,12 +335,20 @@ int main(int argc, char **argv) {
 
           case SDLK_UP: {
             editor_update_selection(&editor, event.key.keysym.mod & KMOD_SHIFT);
-            editor_move_line_up(&editor);
+            if (event.key.keysym.mod & KMOD_CTRL) {
+              editor_move_paragraph_up(&editor);
+            } else {
+              editor_move_line_up(&editor);
+            }
           } break;
 
           case SDLK_DOWN: {
             editor_update_selection(&editor, event.key.keysym.mod & KMOD_SHIFT);
-            editor_move_line_down(&editor);
+            if (event.key.keysym.mod & KMOD_CTRL) {
+              editor_move_paragraph_down(&editor);
+            } else {
+              editor_move_line_down(&editor);
+            }
           } break;
 
           case SDLK_LEFT: {
